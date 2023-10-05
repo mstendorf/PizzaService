@@ -9,7 +9,7 @@ namespace PizzaService.Controllers
     [Route("orders")]
     public class PizzaController : ControllerBase
     {
-        private static readonly List<Order> orders = new List<Order>();
+        private static readonly List<BackendOrder> orders = new List<BackendOrder>();
         private readonly IEventStore eventStore;
         private readonly IPizzaMenuClient pizzaMenuClient;
 
@@ -20,26 +20,24 @@ namespace PizzaService.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<Order> GetOrders()
+        public IEnumerable<BackendOrder> GetOrders()
         {
             return orders;
         }
 
         [HttpPost]
-        public ActionResult<Order> AddOrder(Order order)
+        public ActionResult<BackendOrder> AddOrder(Order order)
         {
             var result = pizzaMenuClient.GetMenuItem(order.PizzaId);
             if (result == null || result.Result == null)
             {
                 return BadRequest($"No pizza with id {order.PizzaId} exists.");
             }
-            else
-            {
-                var pizza = result.Result;
-                orders.Add(order);
-                eventStore.Raise("pizza_ordered", new BackendOrder(order.TableNumber, pizza));
-            }
-            return order;
+            var pizza = result.Result;
+            var backendOrder = new BackendOrder(order.TableNumber, pizza);
+            orders.Add(backendOrder);
+            eventStore.Raise("pizza_ordered", backendOrder);
+            return backendOrder;
         }
     }
 }
